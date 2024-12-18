@@ -1,16 +1,14 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class SavePos : MonoBehaviour
 {
-	public Transform checkPoint;
+    public Transform checkPoint;
 
-	void OnTriggerEnter(Collider col)
-	{
-		if (col.gameObject.tag == "Player")
-		{
-			col.gameObject.GetComponent<CharacterControls>().checkPoint = checkPoint.position;
-		}
-	}
+    void OnTriggerEnter(Collider col)
+    {
+        if (col.CompareTag("Player"))
+        {
+            col.GetComponent<CharacterControls>().checkPoint = checkPoint.position;
+        }
+    }
 }

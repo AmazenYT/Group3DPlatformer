@@ -3,7 +3,6 @@ using System.Collections;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(CapsuleCollider))]
-
 public class CharacterControls : MonoBehaviour
 {
     public float speed = 10.0f;
@@ -13,24 +12,23 @@ public class CharacterControls : MonoBehaviour
     public float jumpHeight = 2.0f;
     public float maxFallSpeed = 20.0f;
     public float rotateSpeed = 25f;
-    private Vector3 moveDir;
     public GameObject cam;
+    private Vector3 moveDir;
     private Rigidbody rb;
 
     private float distToGround;
-
     private bool canMove = true;
     private bool isStuned = false;
     private bool wasStuned = false;
     private float pushForce;
     private Vector3 pushDir;
-
     public Vector3 checkPoint;
     private bool slide = false;
 
     void Start()
     {
         distToGround = GetComponent<Collider>().bounds.extents.y;
+        checkPoint = transform.position;
     }
 
     bool IsGrounded()
@@ -43,7 +41,6 @@ public class CharacterControls : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
         rb.useGravity = false;
-        checkPoint = transform.position;
         Cursor.visible = false;
     }
 
@@ -51,7 +48,7 @@ public class CharacterControls : MonoBehaviour
     {
         if (canMove)
         {
-            if (moveDir.x != 0 || moveDir.z != 0)
+            if (moveDir.magnitude > 0)
             {
                 Vector3 targetDir = moveDir;
                 targetDir.y = 0;
@@ -64,55 +61,27 @@ public class CharacterControls : MonoBehaviour
                 transform.rotation = targetRotation;
             }
 
+            Vector3 targetVelocity = moveDir * (IsGrounded() ? speed : airVelocity);
+            Vector3 velocity = rb.velocity;
+
+            Vector3 velocityChange = (targetVelocity - velocity);
+            velocityChange.x = Mathf.Clamp(velocityChange.x, -maxVelocityChange, maxVelocityChange);
+            velocityChange.z = Mathf.Clamp(velocityChange.z, -maxVelocityChange, maxVelocityChange);
+            velocityChange.y = 0;
+
             if (IsGrounded())
             {
-                Vector3 targetVelocity = moveDir * speed;
-                Vector3 velocity = rb.velocity;
+                if (Mathf.Abs(rb.velocity.magnitude) < speed * 1.0f)
+                    rb.AddForce(velocityChange, ForceMode.VelocityChange);
 
-                if (targetVelocity.magnitude < velocity.magnitude)
-                {
-                    targetVelocity = velocity;
-                    rb.velocity /= 1.1f;
-                }
-
-                Vector3 velocityChange = (targetVelocity - velocity);
-                velocityChange.x = Mathf.Clamp(velocityChange.x, -maxVelocityChange, maxVelocityChange);
-                velocityChange.z = Mathf.Clamp(velocityChange.z, -maxVelocityChange, maxVelocityChange);
-                velocityChange.y = 0;
-
-                if (!slide)
-                {
-                    if (Mathf.Abs(rb.velocity.magnitude) < speed * 1.0f)
-                        rb.AddForce(velocityChange, ForceMode.VelocityChange);
-                }
-                else if (Mathf.Abs(rb.velocity.magnitude) < speed * 1.0f)
-                {
-                    rb.AddForce(moveDir * 0.15f, ForceMode.VelocityChange);
-                }
-
-                if (IsGrounded() && Input.GetButton("Jump"))
+                if (Input.GetButton("Jump"))
                 {
                     rb.velocity = new Vector3(velocity.x, CalculateJumpVerticalSpeed(), velocity.z);
                 }
             }
-            else
+            else if (!slide && Mathf.Abs(rb.velocity.magnitude) < speed * 1.0f)
             {
-                if (!slide)
-                {
-                    Vector3 targetVelocity = new Vector3(moveDir.x * airVelocity, rb.velocity.y, moveDir.z * airVelocity);
-                    Vector3 velocity = rb.velocity;
-                    Vector3 velocityChange = (targetVelocity - velocity);
-                    velocityChange.x = Mathf.Clamp(velocityChange.x, -maxVelocityChange, maxVelocityChange);
-                    velocityChange.z = Mathf.Clamp(velocityChange.z, -maxVelocityChange, maxVelocityChange);
-                    rb.AddForce(velocityChange, ForceMode.VelocityChange);
-
-                    if (velocity.y < -maxFallSpeed)
-                        rb.velocity = new Vector3(velocity.x, -maxFallSpeed, velocity.z);
-                }
-                else if (Mathf.Abs(rb.velocity.magnitude) < speed * 1.0f)
-                {
-                    rb.AddForce(moveDir * 0.15f, ForceMode.VelocityChange);
-                }
+                rb.AddForce(velocityChange, ForceMode.VelocityChange);
             }
         }
         else
@@ -132,8 +101,7 @@ public class CharacterControls : MonoBehaviour
         Vector3 h2 = h * cam.transform.right;
         moveDir = (v2 + h2).normalized;
 
-        RaycastHit hit;
-        if (Physics.Raycast(transform.position, -Vector3.up, out hit, distToGround + 0.1f))
+        if (Physics.Raycast(transform.position, -Vector3.up, out RaycastHit hit, distToGround + 0.1f))
         {
             slide = hit.transform.CompareTag("Slide");
         }
@@ -154,7 +122,6 @@ public class CharacterControls : MonoBehaviour
     public void HitPlayer(Vector3 velocityF, float time)
     {
         rb.velocity = velocityF;
-
         pushForce = velocityF.magnitude;
         pushDir = Vector3.Normalize(velocityF);
         StartCoroutine(Decrease(velocityF.magnitude, time));
@@ -184,8 +151,6 @@ public class CharacterControls : MonoBehaviour
                 pushForce -= Time.deltaTime * delta;
                 pushForce = Mathf.Max(0, pushForce);
             }
-
-            rb.AddForce(new Vector3(0, -gravity * rb.mass, 0));
         }
 
         if (wasStuned)
