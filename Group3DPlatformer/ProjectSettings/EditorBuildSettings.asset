@@ -4,5 +4,12 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/MainLevel.unity
+    guid: 3f6390b6c4817804eb84fb435a9800f3
+  - enabled: 1
+    path: Assets/Scenes/VictoryScreen.unity
+    guid: dcff609593a32954d9f4ee8288e4dbab
   m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0
